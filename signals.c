@@ -48,7 +48,7 @@ int main()
         for (int i = 0; i < 5; i++)
         {
                 zombi = wait(&state);
-                printf("PID %d is DEAD\n",zombi);
+                printf("Process %d is dead\n",zombi);
                 kill(zombi,SIGKILL);
         }
 

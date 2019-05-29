@@ -46,7 +46,7 @@ int main()
         else if (pid > 0)
         {
                 close(fd1[0]); // Close reading end of first pipe
-                printf("Give me String that I could send to the Child!\n");
+                printf("plain text: ");
                 scanf("%20s", buffer);
                 // Write input string and close writing end of first
                 // pipe.
@@ -66,7 +66,7 @@ int main()
                 close(fd2[0]);
 
                 if(strlen(buffer32)==32) {
-                        cout<< buffer32;
+                  printf("encrypted by process %d : %s\n",getpid(),buffer32);
                         kill(pid, SIGKILL);
                 }else{
                         exit(0);
