@@ -6,60 +6,91 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/wait.h>
 #include "md5.h"
 using std::cout; using std::endl;
 #define MSGSIZE 20
+#define MSGSIZE32 10
+int main()
+{
 
 
-int main(int argc, char const *argv[]) {
+        int fd1[2];
+        int fd2[2];
+
         char buffer[MSGSIZE];
+        char buffer32[MSGSIZE32];
         int pid;
-        int fd[2];
-        pipe(fd);
-        //בדיקה
-        pid=fork();
+        //check pipes 1
+        if (pipe(fd1)==-1)
+        {
+                fprintf(stderr, "Pipe Failed" );
+                return 1;
+        }
+        //check pipes 2
+        if (pipe(fd2)==-1)
+        {
+                fprintf(stderr, "Pipe Failed" );
+                return 1;
+        }
 
-        if(pid>0) {
-                // parent
-                close(fd[0]);
-                printf("Give me String to send to Child!\n");
+        pid = fork();
+        //check fork
+        if (pid < 0)
+        {
+                fprintf(stderr, "fork Failed" );
+                return 1;
+        }
+
+        // Parent process
+        else if (pid > 0)
+        {
+                close(fd1[0]); // Close reading end of first pipe
+                printf("Give me String that I could send to the Child!\n");
                 scanf("%20s", buffer);
-                write(fd[1], buffer, 20);
-                close(fd[1]);
-                sleep(2);
+                // Write input string and close writing end of first
+                // pipe.
+                write(fd1[1], buffer, 20);
+                close(fd1[1]);
 
-                  char buffer32[32];
+                // Wait for child to send a string
+                wait(NULL);
 
-                close(fd[1]);
-                read(fd[0], buffer32, 32);
-                 printf("Child(%d) received value: %s\n", getpid(), buffer32);
-                close(fd[0]);
-        }else{
-                //child
-                close(fd[1]);
-                read(fd[0], buffer, 20);
-                cout << "md5 of 'grape': " << buffer << endl;
-                cout << "md5 of 'grape': " << md5(buffer) << endl;
+                close(fd2[1]); // Close writing end of second pipe
+
+                // Read string from child, print it and close
+                // reading end.
+
+                read(fd2[0], buffer32, 32);
+
+                close(fd2[0]);
+
+                if(strlen(buffer32)==32) {
+                        cout<< buffer32;
+                        kill(pid, SIGKILL);
+                }else{
+                        exit(0);
+                }
+        }
+
+        // child process
+        else
+        {
+                close(fd1[1]); // Close writing end of first pipe
+
+                // Read a string using first pipe
+                read(fd1[0], buffer, 20);
                 std::string str= md5(buffer);
-                char answer[str.length() + 1];
-                strcpy(answer, str.c_str());
-                write(fd[1],answer,strlen(answer) + 1);
 
-                //printf("Child(%d) received value: %s\n", getpid(), buffer);
-                //printf("%d\n",pid );
-                close(fd[0]);
+                // Close both reading ends
+                close(fd1[0]);
+                close(fd2[0]);
+                // Write concatenated string and close writing end
+                write(fd2[1], str.c_str(), 32);
+                close(fd2[1]);
+
+
+                exit(0);
         }
         return 0;
 }
-
-
-
-
-
-using std::cout; using std::endl;
-//
-// int main(int argc, char *argv[])
-// {
-//     cout << "md5 of 'grape': " << md5("grape") << endl;
-//     return 0;
-// }
